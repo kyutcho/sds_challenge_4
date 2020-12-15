@@ -1,3 +1,3 @@
 # sds_challenge_4
 
-refer to challenge.ipynb for the project specifics
+- Refer to challenge.ipynb for the project specifics
