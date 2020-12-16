@@ -33,4 +33,4 @@ pct = round((train_data.isnull().sum() / len(train_data) * 100), 2).sort_values(
 missing_data = pd.concat([total, pct], axis=1, keys=["Total", "Percent"])
 missing_data.head(10)
 
-missing_data.head(4)
+missing_data.tail(3)
