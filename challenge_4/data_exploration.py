@@ -68,9 +68,10 @@ train_data["host_acceptance_rate"] = train_data["host_acceptance_rate"].str.repl
 #%%
 # EDA (price)
 train_data["price"].describe()
+
 #%%
 ax = sns.distplot(train_data["price"])
-ax.set(xlim = (0,2000))
+# ax.set(xlim = (0,2000))
 plt.show()
 
 #%%
