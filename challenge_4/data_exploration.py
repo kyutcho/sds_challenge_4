@@ -4,6 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import missingno as msno
+import sys
+from sklearn.impute import KNNImputer
 
 #%%
 pd.set_option('display.max_rows', 500)
@@ -45,19 +47,9 @@ train_data.info()
 # Columns that need to be excluded
 excl_cols = ["name", "description", "neighborhood_overview", "picture_url", "host_name",\
              "host_location", "host_about", "host_thumbnail_url", "host_picture_url"]
-train_data.loc[:, excl_cols]
+# train_data.loc[:, excl_cols]
 
-#%% 
-# Function for missing values
-def calc_missing(df): 
-    total = df.isnull().sum().sort_values(ascending=False)
-    pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
-
-    missing_df = pd.concat([total, pct], axis=1, keys=["Total", "Percent"]).reset_index()
-
-    print(missing_df)
-
-calc_missing(train_data)
+train_data.drop(excl_cols, axis = 1, inplace = True)
 
 #%% 
 # Data Transformation (price)
@@ -77,12 +69,52 @@ train_data["host_acceptance_rate"] = train_data["host_acceptance_rate"].str.repl
 # EDA (price)
 train_data["price"].describe()
 #%%
+ax = sns.distplot(train_data["price"])
+ax.set(xlim = (0,2000))
+plt.show()
+
+#%%
+# log(price)
+sns.distplot(np.log(train_data["price"]+0.00000000001))
+plt.show()
+
+#%%
+# sqrt(price)
+sns.distplot(np.sqrt(train_data["price"]+0.00000000001))
+plt.show()
+
+#%%
 ax = sns.histplot(data = train_data, x = "price")
 ax.set(xlim = (0,2000))
 plt.show()
 
 #%%
+sns.catplot(data = train_data, y = "price", kind = "box")
+
+#%%
 sns.relplot(kind = "scatter", y = train_data["price"], x = train_data["beds"])
+
+# Missing values
+#%% 
+# Function for missing values
+def calc_missing(df): 
+    total = df.isnull().sum().sort_values(ascending=False)
+    pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
+
+    missing_df = pd.concat([total, pct], axis=1, keys=["Total", "Percent"]).reset_index()
+
+    print(missing_df)
+
+calc_missing(train_data)
+
+#%%
+# KNN Imputer
+knn_train_copy = train_data.select_dtypes(include="number").copy(deep = True)
+knn_imputer = KNNImputer(n_neighbors = 2, weights = "uniform")
+knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
+
+# calc_missing(knn_train_imputed)
+
 
 #%%
 # sns.scatterplot(x = train_data["longitude"], y = train_data["latitude"])
