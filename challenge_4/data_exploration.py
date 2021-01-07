@@ -49,7 +49,7 @@ excl_cols = ["name", "description", "neighborhood_overview", "picture_url", "hos
              "host_location", "host_about", "host_thumbnail_url", "host_picture_url"]
 # train_data.loc[:, excl_cols]
 
-train_data.drop(excl_cols, axis = 1, inplace = True)
+# train_data.drop(excl_cols, axis = 1, inplace = True)
 
 #%% 
 # Data Transformation (price)
@@ -65,9 +65,30 @@ for var in ['has_availability', 'instant_bookable', 'host_is_superhost', 'host_h
 train_data["host_response_rate"] = train_data["host_response_rate"].str.replace('%', '').astype(float)
 train_data["host_acceptance_rate"] = train_data["host_acceptance_rate"].str.replace('%', '').astype(float)
 
-#%%
 # EDA (price)
+#%%
 train_data["price"].describe()
+
+#%%
+def calc_IQR(col):
+    return col.quantile(0.75) - col.quantile(0.25)
+
+def calc_outlier(df, col):
+    IQR = calc_IQR(df[col])
+    
+    third_qt = df[col].quantile(0.75)
+    first_qt = df[col].quantile(0.25)
+    
+    outliers = df.loc[(df[col] <= (first_qt - 1.5*IQR)) | 
+                      (df[col] >= (third_qt + 1.5*IQR)), col]
+    
+    n_outliers = len(outliers)
+    
+    return outliers, n_outliers
+
+#%%
+# number of outliers
+price_outliers, price_n_outliers = calc_outlier(train_data, "price")
 
 #%%
 ax = sns.distplot(train_data["price"])
@@ -93,7 +114,27 @@ plt.show()
 sns.catplot(data = train_data, y = "price", kind = "box")
 
 #%%
+# sns.scatterplot(x = train_data["longitude"], y = train_data["latitude"])
+# plt.scatter(x = train_data["longitude"], y = train_data["latitude"], alpha = 0.4)
+train_data.loc[train_data["price"] < 304]\
+          .plot(kind = "scatter", 
+                x = "longitude", 
+                y = "latitude", 
+                alpha = 0.4, 
+                c = "price", 
+                cmap=plt.get_cmap("jet"), 
+                colorbar=True)
+plt.show()
+
+#%%
+sns.catplot(kind = "box", data = train_data, x = "neighbourhood_group_cleansed", y = "price")
+
+#%%
 sns.relplot(kind = "scatter", y = train_data["price"], x = train_data["beds"])
+
+# Duplicate rows
+#%%
+train_data[train_data.duplicated()]
 
 # Missing values
 #%% 
@@ -103,11 +144,17 @@ def calc_missing(df):
     pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
 
     missing_df = pd.concat([total, pct], axis=1, keys=["Total", "Percent"]).reset_index()
+    missing_df = missing_df[missing_df["Total"] > 0]
 
     print(missing_df)
 
 calc_missing(train_data)
 
+#%%
+# Delete instances that most features are missing
+train_data.dropna(thresh = 9, axis = 0, inplace = True)
+
+# Imputing
 #%%
 # KNN Imputer
 knn_train_copy = train_data.select_dtypes(include="number").copy(deep = True)
@@ -115,48 +162,3 @@ knn_imputer = KNNImputer(n_neighbors = 2, weights = "uniform")
 knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
 
 # calc_missing(knn_train_imputed)
-
-
-#%%
-# sns.scatterplot(x = train_data["longitude"], y = train_data["latitude"])
-# train_data.plot(kind = "scatter", x = "longitude", y = "latitude", 
-# alpha = 0.4, c = "price", cmap=plt.get_cmap("jet"), colorbar=True)
-
-#%%
-# Missing values in host
-train_data.loc[:, list(missing_data.iloc[:4, 0])]
-
-#%%
-# Fill missing values for host_response_rate and host_acceptance_rate
-train_data["host_response_rate"] = train_data["host_response_rate"].str.split('%').str[0].fillna('0').astype("int")
-train_data["host_acceptance_rate"] = train_data["host_acceptance_rate"].str.split('%').str[0].fillna('0').astype("int")
-
-#%%
-# Missing values in reviews
-train_data.loc[:, list(missing_data.iloc[6:16, 0])]
-
-#%%
-# Fill missing values for review_scores
-review_cols = [col for col in train_data.columns if "review_scores" in col]
-review_cols.append("reviews_per_month")
-
-train_data[review_cols] = train_data[review_cols].fillna(0)
-
-#%%
-# Missing values in neighborhood
-train_data.loc[:, list(missing_data.iloc[4:6, 0])]
-train_data["host_neighbourhood"]
-
-#%%
-# See columns that contain neighbo(u)r
-train_data.filter(regex="neighb")
-
-#%%
-# Drop uncleaned columns
-train_data.drop(["host_neighbourhood", "neighbourhood"], axis=1, inplace=True)
-
-#%%
-# Missing values in bedroom
-train_data["bedrooms"]
-
-print(calc_missing(train_data))
