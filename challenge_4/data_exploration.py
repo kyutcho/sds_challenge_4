@@ -132,6 +132,13 @@ sns.catplot(kind = "box", data = train_data, x = "neighbourhood_group_cleansed",
 #%%
 sns.relplot(kind = "scatter", y = train_data["price"], x = train_data["beds"])
 
+#%%
+corr_df = train_data.select_dtypes("number").corr().abs()
+mask = np.triu(np.ones_like(corr_df, dtype = bool))
+tri_df = corr_df.mask(mask)
+corr_filtered_df = train_data[[c for c in tri_df.columns if any(tri_df[c] > 0.8)]].corr()
+sns.heatmap(corr_filtered_df, cmap="YlGnBu", annot = True)
+
 # Duplicate rows
 #%%
 train_data[train_data.duplicated()]
