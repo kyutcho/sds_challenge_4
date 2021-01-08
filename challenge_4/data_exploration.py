@@ -21,7 +21,7 @@ pd.set_option('display.width', 1000)
 
 #%% 
 # Row 17613 causes a problem - Read csv file again
-train_raw = pd.read_csv("data/public_listings.csv", skiprows=[17614], parse_dates=["first_review", "last_review"])
+train_raw = pd.read_csv("data/public_listings.csv", skiprows=[17614], parse_dates=["host_since", "first_review", "last_review"])
 
 #%% 
 # Make copy
@@ -43,13 +43,40 @@ train_data.shape
 # Basic info
 train_data.info()
 
+# Duplicate rows
+#%%
+train_data[train_data.duplicated()]
+
+# Missing values
+#%% 
+# Function for missing values
+def calc_missing(df): 
+    total = df.isnull().sum().sort_values(ascending=False)
+    pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
+
+    missing_df = pd.concat([total, pct], axis=1, keys=["Total", "Percent"]).reset_index()
+    missing_df = missing_df[missing_df["Total"] > 0]
+
+    print(missing_df)
+
+calc_missing(train_data)
+
+#%%
+# Delete instances that most features are missing
+train_data.dropna(thresh = 9, axis = 0, inplace = True)
+
+#%%
+# One of these columns should be dropped
+train_data["host_listings_count"].equals(train_data["host_total_listings_count"])
+
 #%% 
 # Columns that need to be excluded
 excl_cols = ["name", "description", "neighborhood_overview", "picture_url", "host_name",\
-             "host_location", "host_about", "host_thumbnail_url", "host_picture_url"]
+             "host_location", "host_about", "host_thumbnail_url", "host_picture_url", "host_neighbourhood",\
+             "neighbourhood", "host_total_listings_count", "calendar_last_scraped"]
 # train_data.loc[:, excl_cols]
 
-# train_data.drop(excl_cols, axis = 1, inplace = True)
+train_data.drop(excl_cols, axis = 1, inplace = True)
 
 #%% 
 # Data Transformation (price)
@@ -64,6 +91,34 @@ for var in ['has_availability', 'instant_bookable', 'host_is_superhost', 'host_h
 # Data Transformation (Percent)
 train_data["host_response_rate"] = train_data["host_response_rate"].str.replace('%', '').astype(float)
 train_data["host_acceptance_rate"] = train_data["host_acceptance_rate"].str.replace('%', '').astype(float)
+
+# Feature Engineering
+#%%
+# host_since
+train_data["days_since_host"] = (train_data["host_since"].max() - train_data["host_since"]).dt.days
+train_data.drop(["host_since"], axis = 1, inplace = True)
+
+#%%
+# last_review - first_review
+train_data["review_days_diff"] = (train_data["last_review"] - train_data["first_review"]).dt.days
+train_data.drop(["last_review", "first_review"], axis = 1, inplace = True)
+
+#%%
+# number of host_verification
+train_data["num_host_verifications"] = train_data["host_verifications"].str.split(", ").apply(lambda x: len(x))
+train_data.drop(["host_verifications"], axis = 1, inplace = True)
+
+#%%
+# number of amenities
+train_data["num_amenities"] = train_data["amenities"].str.split(", ").apply(lambda x: len(x))
+train_data.drop(["amenities"], axis = 1, inplace = True)
+
+#%%
+# num_bathroom, bath_is_private, bath_is_shared
+train_data["bathrooms_text"] = train_data["bathrooms_text"].str.replace("half-bath", "0.5", case = False)
+train_data["num_baths"] = train_data.bathrooms_text.str.extract('(\d+\.?\d*)')
+train_data["bath_is_private"] = train_data["bathrooms_text"].str.contains("private", case = False)
+train_data["bath_is_shared"] = train_data["bathrooms_text"].str.contains("shared", case = False)
 
 # EDA (price)
 #%%
@@ -97,17 +152,14 @@ plt.show()
 
 #%%
 # log(price)
-sns.distplot(np.log(train_data["price"]+0.00000000001))
+train_data["log_price"] = np.log(train_data["price"]+0.00000000001)
+sns.distplot(train_data["log_price"])
 plt.show()
 
 #%%
 # sqrt(price)
-sns.distplot(np.sqrt(train_data["price"]+0.00000000001))
-plt.show()
-
-#%%
-ax = sns.histplot(data = train_data, x = "price")
-ax.set(xlim = (0,2000))
+train_data["sqrt_price"] = np.sqrt(train_data["price"])
+sns.distplot(train_data["sqrt_price"])
 plt.show()
 
 #%%
@@ -139,28 +191,6 @@ tri_df = corr_df.mask(mask)
 corr_filtered_df = train_data[[c for c in tri_df.columns if any(tri_df[c] > 0.8)]].corr()
 sns.heatmap(corr_filtered_df, cmap="YlGnBu", annot = True)
 
-# Duplicate rows
-#%%
-train_data[train_data.duplicated()]
-
-# Missing values
-#%% 
-# Function for missing values
-def calc_missing(df): 
-    total = df.isnull().sum().sort_values(ascending=False)
-    pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
-
-    missing_df = pd.concat([total, pct], axis=1, keys=["Total", "Percent"]).reset_index()
-    missing_df = missing_df[missing_df["Total"] > 0]
-
-    print(missing_df)
-
-calc_missing(train_data)
-
-#%%
-# Delete instances that most features are missing
-train_data.dropna(thresh = 9, axis = 0, inplace = True)
-
 # Imputing
 #%%
 # KNN Imputer
@@ -169,3 +199,4 @@ knn_imputer = KNNImputer(n_neighbors = 2, weights = "uniform")
 knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
 
 # calc_missing(knn_train_imputed)
+
