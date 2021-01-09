@@ -51,10 +51,14 @@ train_data[train_data.duplicated()]
 #%% 
 # Function for missing values
 def calc_missing(df): 
-    total = df.isnull().sum().sort_values(ascending=False)
-    pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
+    # total = df.isnull().sum().sort_values(ascending=False)
+    # pct = round((df.isnull().sum() / len(df) * 100), 2).sort_values(ascending=False)
 
-    missing_df = pd.concat([total, pct], axis=1, keys=["Total", "Percent"]).reset_index()
+    total = df.isnull().sum()
+    pct = round((df.isnull().sum() / len(df) * 100), 2)
+    dtypes = df.dtypes
+
+    missing_df = pd.concat([total, pct, dtypes], axis=1, keys=["Total", "Percent", "Dtypes"]).sort_values(by = ["Total"], ascending = False).reset_index()
     missing_df = missing_df[missing_df["Total"] > 0]
 
     print(missing_df)
@@ -119,6 +123,7 @@ train_data["bathrooms_text"] = train_data["bathrooms_text"].str.replace("half-ba
 train_data["num_baths"] = train_data.bathrooms_text.str.extract('(\d+\.?\d*)')
 train_data["bath_is_private"] = train_data["bathrooms_text"].str.contains("private", case = False)
 train_data["bath_is_shared"] = train_data["bathrooms_text"].str.contains("shared", case = False)
+train_data.drop(["bathrooms_text"], axis = 1, inplace = True)
 
 # EDA (price)
 #%%
@@ -134,8 +139,7 @@ def calc_outlier(df, col):
     third_qt = df[col].quantile(0.75)
     first_qt = df[col].quantile(0.25)
     
-    outliers = df.loc[(df[col] <= (first_qt - 1.5*IQR)) | 
-                      (df[col] >= (third_qt + 1.5*IQR)), col]
+    outliers = df.loc[(df[col] <= (first_qt - 1.5*IQR)) | (df[col] >= (third_qt + 1.5*IQR)), col]
     
     n_outliers = len(outliers)
     
@@ -144,6 +148,17 @@ def calc_outlier(df, col):
 #%%
 # number of outliers
 price_outliers, price_n_outliers = calc_outlier(train_data, "price")
+
+#%%
+def df_no_outlier(df, col):
+    IQR = calc_IQR(df[col])
+    
+    third_qt = df[col].quantile(0.75)
+    first_qt = df[col].quantile(0.25)
+
+    non_outlier_df = df.loc[(df[col] > (first_qt - 1.5*IQR)) & (df[col] < (third_qt + 1.5*IQR))]
+
+    return non_outlier_df
 
 #%%
 ax = sns.distplot(train_data["price"])
@@ -177,6 +192,9 @@ train_data.loc[train_data["price"] < 304]\
                 cmap=plt.get_cmap("jet"), 
                 colorbar=True)
 plt.show()
+
+#%%
+price_outliers_removed = df_no_outlier(train_data, "price")
 
 #%%
 sns.catplot(kind = "box", data = train_data, x = "neighbourhood_group_cleansed", y = "price")
