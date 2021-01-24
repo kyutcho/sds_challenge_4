@@ -150,23 +150,21 @@ ctab_chk_2 = ctab_2.apply(lambda x: ((x != 0).sum()), axis=1)
 # Verified overall property_type is well assigned to room_type -> Drop property_type
 train_data.drop(["property_type"], axis=1, inplace=True)
 
-# Imputing
-# %% Categorical vars Manual Impute
-train_data.fillna({"host_response_time": "no response data"}, inplace=True)
-train_data.fillna({"host_verifications": "", "amenities": ""}, inplace=True)
+# %%
+# Correlation
+train_data.corr().loc[:, "price"].sort_values(ascending = False)
 
 # %%
-# KNN Imputer
-# knn_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
-# knn_imputer = KNNImputer(n_neighbors=2, weights="uniform")
-# knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
+fig, ax = plt.subplots()
+sns.scatterplot(data = train_data, x = "accommodates", y = "price", ax = ax)
 
 # %%
-# Simple Imputer
-mean_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
-mean_imputer = SimpleImputer(missing_values=np.nan, strategy="mean")
-mean_train_imputed = mean_imputer.fit_transform(mean_train_copy)
-mean_train_imputed = pd.DataFrame(mean_train_imputed)
+fig, ax = plt.subplots()
+sns.scatterplot(data = train_data, x = "beds", y = "price", ax = ax)
+
+# %%
+fig, ax = plt.subplots()
+sns.scatterplot(data = train_data, x = "bedrooms", y = "price", ax = ax)
 
 # %%
 # Beds per bedrooms
@@ -252,7 +250,31 @@ plt.show()
 price_outliers_removed = df_no_outlier(train_data, "price")
 
 # %%
+train_data.groupby(["neighbourhood_group_cleansed"]).agg({"price":["mean", "median", "std"]}).reset_index()
+
+#%%
 sns.catplot(kind="box", data=train_data, x="neighbourhood_group_cleansed", y="price")
+
+# %%
+# sns.distplot(train_data[train_data["neighbourhood_group_cleansed"] == "Manhattan"][["price"]])
+fig, ax = plt.subplots()
+sns.distplot(train_data[train_data["neighbourhood_group_cleansed"] == "Manhattan"][["price"]], ax = ax)
+ax.set(xlim=(0,2000))
+plt.show()
+
+# %%
+fig, ax = plt.subplots(3,2)
+sns.distplot(train_data[train_data["neighbourhood_group_cleansed"] == "Manhattan"][["price"]], ax = ax[0,0])
+ax[0,0].set(xlim=(0,2000))
+
+for i in range(1, 6):
+plt.show()
+
+# %%
+train_data.groupby(["host_is_superhost"]).agg({"price":["mean", "median", "std"]}).reset_index()
+
+# %%
+sns.catplot(kind="box", data=train_data, x="host_is_superhost", y="price")
 
 # %%
 sns.relplot(kind="scatter", y=train_data["price"], x=train_data["beds"])
@@ -263,3 +285,23 @@ mask = np.triu(np.ones_like(corr_df, dtype=bool))
 tri_df = corr_df.mask(mask)
 corr_filtered_df = train_data[[c for c in tri_df.columns if any(tri_df[c] > 0.8)]].corr()
 sns.heatmap(corr_filtered_df, cmap="YlGnBu", annot=True)
+
+
+
+# Imputing
+# %% Categorical vars Manual Impute
+train_data.fillna({"host_response_time": "no response data"}, inplace=True)
+train_data.fillna({"host_verifications": "", "amenities": ""}, inplace=True)
+
+# %%
+# KNN Imputer
+# knn_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
+# knn_imputer = KNNImputer(n_neighbors=2, weights="uniform")
+# knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
+
+# %%
+# Simple Imputer
+mean_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
+mean_imputer = SimpleImputer(missing_values=np.nan, strategy="mean")
+mean_train_imputed = mean_imputer.fit_transform(mean_train_copy)
+mean_train_imputed = pd.DataFrame(mean_train_imputed)
