@@ -1,4 +1,4 @@
-# %%
+#%%
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ from sklearn.impute import KNNImputer
 # from sklearn.impute import IterativeImputer
 from sklearn.experimental import enable_iterative_imputer
 
-# %%
+#%%
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -22,74 +22,74 @@ pd.set_option('display.width', 1000)
 #
 # train_data[train_data.columns[[15, 24, 33, 38, 42, 43, 51]]]
 
-# %%
+#%%
 # Row 17613 causes a problem - Read csv file again
 train_raw = pd.read_csv("data/public_listings.csv", skiprows=[17614],
                         parse_dates=["host_since", "first_review", "last_review"])
 
-# %%
+#%%
 # Make copy
 train_data = train_raw.copy()
 
-# %%
+#%%
 # Check the first 3 rows
 train_data.head(3)
 
-# %%
+#%%
 # Columns
 train_data.columns
 
-# %%
+#%%
 # Shape
 train_data.shape
 
-# %%
+#%%
 # Basic info
 train_data.info()
 
 # Duplicate rows
-# %%
+#%%
 train_data[train_data.duplicated()]
 
-# %%
+#%%
 # Data Transformation (price)
 train_data["price"] = train_data["price"].str.replace(',', '').astype(float)
 
-# %%
+#%%
 # Data Transformation (Binary)
 for var in ['has_availability', 'instant_bookable', 'host_is_superhost', 'host_has_profile_pic',
             'host_identity_verified']:
     train_data[var] = train_data[var].map({'t': 1, 'f': 0})
 
-# %%
+#%%
 # Data Transformation (Percent)
 train_data["host_response_rate"] = train_data["host_response_rate"].str.replace('%', '').astype(float)
 train_data["host_acceptance_rate"] = train_data["host_acceptance_rate"].str.replace('%', '').astype(float)
 
 # Feature Engineering
-# %%
+#%%
 # host_since
 train_data["days_since_host"] = (train_data["host_since"].max() - train_data["host_since"]).dt.days
 # train_data.drop(["host_since"], axis=1, inplace=True)
 
-# %%
+#%%
 # last_review - first_review
 train_data["review_days_diff"] = (train_data["last_review"] - train_data["first_review"]).dt.days
 # train_data.drop(["last_review", "first_review"], axis=1, inplace=True)
 
-# %%
+#%%
 # number of host_verification
 train_data["num_host_verifications"] = train_data["host_verifications"].str.count(",").apply(lambda x: x+1)
 train_data["num_host_verifications"].fillna(0, inplace=True)
 # train_data.drop(["host_verifications"], axis=1, inplace=True)
 
-# %%
+#%%
 # number of amenities
 train_data["num_amenities"] = train_data["amenities"].str.count(",").apply(lambda x: x+1)
 train_data["num_amenities"].fillna(0, inplace=True)
 # train_data.drop(["amenities"], axis=1, inplace=True)
 
-# %%
+#%%
 # num_bathroom, bath_is_private, bath_is_shared
 train_data["bathrooms_text"] = train_data["bathrooms_text"].str.replace("half-bath", "0.5", case=False)
 train_data["num_baths"] = train_data.bathrooms_text.str.extract('(\d+\.?\d*)').astype(float)
@@ -98,10 +98,10 @@ train_data["bath_is_shared"] = train_data["bathrooms_text"].str.contains("shared
 # train_data.drop(["bathrooms_text"], axis=1, inplace=True)
 
 # Price
-# %%
+#%%
 train_data["price"].describe()
 
-# %%
+#%%
 fig, ax = plt.subplots(1,2, figsize = (12,8))
 sns.distplot(train_data["price"], ax=ax[0])
 ax[0].set(xlim=(0,2000))
@@ -109,7 +109,7 @@ sns.boxplot(data=train_data, y="price", ax=ax[1])
 ax[1].set(ylim=(0,2000))
 plt.show()
 
-# %%
+#%%
 # log(price)
 epsilon = 10**-7
 fig, ax = plt.subplots()
@@ -117,7 +117,7 @@ sns.distplot(np.log(train_data["price"] + epsilon), ax=ax, bins=50)
 ax.set(title="Distribution with log(price)")
 plt.show()
 
-# %%
+#%%
 # sqrt(price)
 fig, ax = plt.subplots()
 # train_data["log_price"] = np.log(train_data["price"] + 0.00000000001)
@@ -125,7 +125,7 @@ sns.distplot(np.sqrt(train_data["price"]), ax=ax)
 ax.set(title="Distribution with sqrt(price)")
 plt.show()
 
-# %%
+#%%
 # sns.scatterplot(x = train_data["longitude"], y = train_data["latitude"])
 # plt.scatter(x = train_data["longitude"], y = train_data["latitude"], alpha = 0.4)
 train_data.loc[train_data["price"] < 250] \
@@ -138,7 +138,7 @@ train_data.loc[train_data["price"] < 250] \
           colorbar=True)
 plt.show()
 
-# %%
+#%%
 def df_no_outlier(df, col):
     IQR = calc_IQR(df[col])
 
@@ -150,13 +150,13 @@ def df_no_outlier(df, col):
     return non_outlier_df
 
 
-# %%
+#%%
 price_outliers_removed = df_no_outlier(train_data, "price")
 
-# %%
+#%%
 train_data.groupby(["neighbourhood_group_cleansed"]).agg({"price":["mean", "median", "std"]}).reset_index()
 
-# %%
+#%%
 fig = plt.figure(figsize=(12,8))
 ax = fig.add_subplot(121)
 sns.boxplot(data=train_data, x="neighbourhood_group_cleansed", y="price", ax = ax)
@@ -165,7 +165,7 @@ ax = fig.add_subplot(122)
 sns.boxplot(data=train_data, x="neighbourhood_group_cleansed", y="price", ax = ax)
 plt.show()
 
-# %%
+#%%
 # Potential outliars
 outliers = train_data[train_data["price"] > 1500]\
         [["price", "neighbourhood_group_cleansed", "room_type", "beds", "bedrooms", "num_amenities"]]\
@@ -173,7 +173,7 @@ outliers = train_data[train_data["price"] > 1500]\
 pd.pivot_table(outliers, values="price", index="room_type", columns="neighbourhood_group_cleansed",
                         aggfunc=["median", "mean", "count"])
 
-# %%
+#%%
 # Manhattan
 fig, ax = plt.subplots(1,2, figsize = (12,8))
 fig.suptitle("Price of Manhattan area")
@@ -183,47 +183,47 @@ sns.boxplot(data=train_data[train_data["neighbourhood_group_cleansed"] == "Manha
 ax[1].set(ylim=(0,2000))
 plt.show()
 
-# %%
+#%%
 # Queens
 fig, ax = plt.subplots(1,2, figsize = (12,8))
 fig.suptitle("Price of Brooklyn area")
-sns.histplot(train_data[train_data["neighbourhood_group_cleansed"] == "Brooklyn"][["price"]], bins=100, kde=True, ax=ax[0])
+sns.distplot(train_data[train_data["neighbourhood_group_cleansed"] == "Brooklyn"][["price"]], bins=100, kde=True, ax=ax[0])
 ax[0].set(xlim=(0,2000))
 sns.boxplot(data=train_data[train_data["neighbourhood_group_cleansed"] == "Brooklyn"][["price"]], y="price", ax=ax[1])
 ax[1].set(ylim=(0,2000))
 plt.show()
 
-# %%
+#%%
 train_data.groupby(["host_is_superhost"]).agg({"price":["mean", "median", "std"]}).reset_index()
 
-# %%
+#%%
 fig, ax = plt.subplots()
 sns.boxplot(data=train_data, x="host_is_superhost", y="price", ax=ax)
 ax.set_ylim(0,500)
 plt.show()
 
-# %%
+#%%
 sns.scatterplot(y=train_data["price"], x=train_data["beds"])
 plt.show()
 
-# %%
+#%%
 sns.scatterplot(y=train_data["price"], x=train_data["bedrooms"])
 plt.show()
 
-# %%
+#%%
 pd.crosstab(train_data["bedrooms"], train_data["room_type"])
 
-# %%
+#%%
 # Correlation
 train_data.corr().loc[:, "price"].sort_values(ascending = False)
 
-# %%
+#%%
 corr_mat = train_data.corr()
 fig, ax = plt.subplots(figsize = (12,9))
 sns.heatmap(corr_mat, ax=ax, vmax=.8)
 plt.show()
 
-# %%
+#%%
 k = 10
 cols = corr_mat.abs().nlargest(10, "price")["price"].index
 corr_mat_zoomed = train_data[cols].corr()
@@ -234,7 +234,7 @@ sns.heatmap(corr_mat_zoomed, fmt=".2f", annot=True, cmap="YlGnBu", cbar=True, li
 plt.show()
 
 # Missing values
-# %%
+#%%
 # Function for missing values
 def calc_missing(df):
     # total = df.isnull().sum().sort_values(ascending=False)
@@ -253,16 +253,16 @@ def calc_missing(df):
 
 calc_missing(train_data)
 
-# %%
+#%%
 # Delete instances that most features are missing
 train_data.dropna(thresh=9, axis=0, inplace=True)
 calc_missing(train_data)
 
-# %%
+#%%
 # One of these columns should be dropped
 train_data["host_listings_count"].equals(train_data["host_total_listings_count"])
 
-# %%
+#%%
 # Columns that need to be excluded
 transf_cols = ["host_since", "last_review", "first_review", "host_verifications", "amenities", "bathrooms_text"]
 irr_cols = ["name", "description", "neighborhood_overview", "picture_url", "host_name",
@@ -271,7 +271,7 @@ irr_cols = ["name", "description", "neighborhood_overview", "picture_url", "host
 
 train_data.drop(transf_cols+irr_cols, axis=1, inplace=True)
 
-# %%
+#%%
 # Relationship between neighbourhood vs neighbourhood_group
 ctab = pd.crosstab(train_data["neighbourhood_cleansed"], train_data["neighbourhood_group_cleansed"])
 ctab_chk = ctab.apply(lambda x: ((x != 0).sum()), axis=1)
@@ -280,10 +280,9 @@ ctab_chk[ctab_chk != 1]
 # This confirms all neighbourhood is assigned to one neighbourhood_group
 train_data.drop(["neighbourhood_cleansed"], axis=1, inplace=True)
 
-# %%
+#%%
 # Relationship between property_type vs room_type
-ctab_2 = pd.crosstab(train_data["property_type"], train_data["room_type"]) \
-    .sort_values(by=list(train_data["room_type"].unique()), ascending=False)
+ctab_2 = pd.crosstab(train_data["property_type"], train_data["room_type"])
 ctab_chk_2 = ctab_2.apply(lambda x: ((x != 0).sum()), axis=1)
 ctab_chk_2[ctab_chk_2 != 1]
 
@@ -291,14 +290,19 @@ ctab_chk_2[ctab_chk_2 != 1]
 train_data.drop(["property_type"], axis=1, inplace=True)
 
 # Imputing
-# %% Categorical vars Manual Impute
-train_data.fillna({"host_response_time": "no response data"}, inplace=True)
+#%% Categorical vars - Imputing with new level (Missing)
+cat_cols = train_data.select_dtypes("object").columns 
+train_data[cat_cols] = train_data[cat_cols].fillna("Missing")
 
-# %%
+#%%
+train_data["host_response_rate"].fillna(0, inplace = True)
+train_data["host_acceptance_rate"].fillna(train_data.groupby(["instant_bookable", "host_is_superhost"])["host_acceptance_rate"].transform("mean"), inplace = True)
+
+#%%
 # Beds per bedrooms
 train_data["beds_per_rooms"] = train_data["beds"] / train_data["bedrooms"]
 
-# %%
+#%%
 def calc_IQR(col):
     return col.quantile(0.75) - col.quantile(0.25)
 
@@ -315,17 +319,17 @@ def calc_outlier(df, col):
 
     return outliers, n_outliers
 
-# %%
+#%%
 # number of outliers
 price_outliers, price_n_outliers = calc_outlier(train_data, "price")
 
-# %%
+#%%
 # KNN Imputer
 # knn_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
 # knn_imputer = KNNImputer(n_neighbors=2, weights="uniform")
 # knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
 
-# %%
+#%%
 # Simple Imputer
 mean_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
 mean_imputer = SimpleImputer(missing_values=np.nan, strategy="mean")
