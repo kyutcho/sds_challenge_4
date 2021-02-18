@@ -56,10 +56,6 @@ train_data.info()
 train_data[train_data.duplicated()]
 
 # %%
-X_train = train_data.drop(columns=["price"], axis=1)
-y_train = train_data["price"]
-
-# %%
 # Data Transformation (price)
 train_data["price"] = train_data["price"].str.replace(',', '').astype(float)
 
@@ -207,7 +203,7 @@ pd.pivot_table(outliers, values="price", index="room_type", columns="neighbourho
 # Manhattan
 fig, ax = plt.subplots(1, 2, figsize=(12, 8))
 fig.suptitle("Price of Manhattan area")
-sns.histplot(train_data[train_data["neighbourhood_group_cleansed"] == "Manhattan"][["price"]], bins=100, kde=True,
+sns.distplot(train_data[train_data["neighbourhood_group_cleansed"] == "Manhattan"][["price"]], bins=100, kde=True,
              ax=ax[0])
 ax[0].set(xlim=(0, 2000))
 sns.boxplot(data=train_data[train_data["neighbourhood_group_cleansed"] == "Manhattan"][["price"]], y="price", ax=ax[1])
@@ -328,6 +324,10 @@ d_cols = round((train_data.isnull().sum() / len(train_data) * 100), 2).sort_valu
 
 train_data.dropna(subset=d_cols, inplace=True)
 
+# %%
+X_train = train_data.drop(columns=["price"], axis=1)
+y_train = train_data["price"]
+
 # Imputing
 # %%
 # Categorical vars - Imputing with new level (Missing) or Mode
@@ -342,12 +342,12 @@ cat_pl = Pipeline([
 
 # %%
 # Numeric vars
-train_data["host_response_rate"].fillna(0, inplace=True)
-train_data["host_acceptance_rate"].fillna(
-    train_data.groupby(["instant_bookable", "host_is_superhost"])["host_acceptance_rate"].transform("mean"),
+X_train["host_response_rate"].fillna(0, inplace=True)
+X_train["host_acceptance_rate"].fillna(
+    X_train.groupby(["instant_bookable", "host_is_superhost"])["host_acceptance_rate"].transform("mean"),
     inplace=True)
-train_data["beds"].fillna(train_data.groupby("accommodates")["beds"].transform("median"), inplace=True)
-train_data["bedrooms"].fillna(train_data.groupby("accommodates")["bedrooms"].transform("median"), inplace=True)
+X_train["beds"].fillna(X_train.groupby("accommodates")["beds"].transform("median"), inplace=True)
+X_train["bedrooms"].fillna(X_train.groupby("accommodates")["bedrooms"].transform("median"), inplace=True)
 
 num_pl = Pipeline([
     ('imputer', KNNImputer(n_neighbors=3, weights="uniform")),
@@ -359,21 +359,21 @@ num_pl = Pipeline([
 # Feature Engineering
 
 # Beds per bedrooms
-train_data["beds_per_rooms"] = train_data["beds"] / train_data["bedrooms"]
+X_train["beds_per_rooms"] = X_train["beds"] / X_train["bedrooms"]
 
 # %%
 # Full Pipeline
-train_cat_cols = train_data.select_dtypes("object").columns
-train_num_cols = train_data.select_dtypes(exclude="object").columns
-train_cat = train_data[train_cat_cols].values
-train_num = train_data[train_num_cols].values
+train_cat_cols = X_train.select_dtypes("object").columns
+train_num_cols = X_train.select_dtypes(exclude="object").columns
+train_cat = X_train[train_cat_cols].values
+train_num = X_train[train_num_cols].values
 
 full_pl = ColumnTransformer([
     ("cat", cat_pl, train_cat_cols),
     ("num", num_pl, train_num_cols)
 ])
 
-train_df_prepared = full_pl.fit_transform(train_data)
+train_df_prepared = full_pl.fit_transform(X_train)
 
 
 # %%
