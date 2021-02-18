@@ -375,17 +375,3 @@ full_pl = ColumnTransformer([
 
 train_df_prepared = full_pl.fit_transform(X_train)
 
-
-# %%
-# KNN Imputer
-# knn_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
-# knn_imputer = KNNImputer(n_neighbors=2, weights="uniform")
-# knn_train_imputed = knn_imputer.fit_transform(knn_train_copy)
-
-# %%
-# Simple Imputer
-
-# mean_train_copy = train_data.select_dtypes(include="number").copy(deep=True)
-# mean_imputer = SimpleImputer(missing_values=np.nan, strategy="mean")
-# mean_train_imputed = mean_imputer.fit_transform(mean_train_copy)
-# mean_train_imputed = pd.DataFrame(mean_train_imputed)
